@@ -9,22 +9,26 @@ The protocol, everywhere: **predict → measure → scoreboard** (see `ledger.py
 ## Quickstart (any laptop, no accelerator needed)
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -U pip jax rich
-make shard          # one matmul, four shardings, HLO receipts
+python3 -m venv .venv && .venv/bin/pip install -U pip jax rich optax matplotlib
+make all            # every act's receipt, on this machine
+make shard          # or one act at a time
 ```
 
 ## Act ↔ file map
 
-| Act | File | Receipt |
-|-----|------|---------|
-| 0 Cold open | `ledger.py` | the scoreboard itself |
-| 1 Rooflines | `chips.py`, `bench_roofline.py` | measured crossover vs spec-sheet prediction |
-| 2 Count everything | `model.py`, `calc.py` | calculator totals vs a real training run |
-| 3 Price of communication | `comms.py`, `shard_matmul.py` | predicted collectives vs compiled HLO |
-| 4 Parallelize | `parallel.py`, `train.py` | 3 strategies, identical loss curves |
-| 5 Reckoning | (same files, real chips) | the full scoreboard on TPU v5e |
-| 6 Inference | `bench_inference.py` | measured decode vs bandwidth floor |
-| 7 Trace | `trace.py` | profiler buckets sum to step time |
+| Act | File | Make target | Receipt |
+|-----|------|-------------|---------|
+| 0 Cold open | `ledger.py` | `ledger` | the scoreboard itself |
+| 1 Rooflines | `chips.py`, `bench_roofline.py` | `roofline` | measured crossover vs spec-sheet band |
+| 2 Count everything | `model.py`, `calc.py` | `model`, `calc` | analytic param count == pytree, exactly |
+| 3 Price of communication | `comms.py`, `shard_matmul.py` | `shard` | predicted collectives vs compiled HLO + timed on real ICI |
+| 4 Parallelize | `parallel.py`, `train.py` | `train` | 3 strategies, identical loss curves + per-strategy HLO collectives |
+| 5 Reckoning | (same files, real chips) | — | the full scoreboard on TPU v5e |
+| 6 Inference | `bench_inference.py` | `inference` | prefill/decode split + decode bandwidth floor |
+| 7 Trace | `trace.py` | `trace` | every profiled microsecond bucketed: compute/memory/comm |
+
+Verified so far: Act 3 receipts 6/6 green on Kaggle TPU v5e-8 (2026-07-01);
+all other acts green on 8 fake CPU devices, real-chip timing receipts pending.
 
 ## Hardware tiers
 

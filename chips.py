@@ -28,3 +28,11 @@ A100 = Chip("NVIDIA A100 40GB", 312e12, 40e9, 1.6e12)
 H100 = Chip("NVIDIA H100", 990e12, 80e9, 3.35e12)
 V5E = Chip("TPU v5e", 197e12, 16e9, 8.2e11)
 V6E = Chip("TPU v6e (Trillium)", 918e12, 32e9, 1.6e12)
+
+_KIND_MAP = {"v5": V5E, "v6": V6E, "t4": T4, "l4": L4, "a100": A100, "h100": H100}
+
+
+def identify(device) -> Chip | None:
+    """Map a jax device to a spec entry, or None if we have no sheet for it."""
+    kind = device.device_kind.lower()
+    return next((c for k, c in _KIND_MAP.items() if k in kind), None)
