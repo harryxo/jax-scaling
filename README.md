@@ -34,6 +34,16 @@ make shard          # one matmul, four shardings, HLO receipts
   Timing receipts run here.
 - **Tier 2** — optional: GCP v5e spot for the 7B lab.
 
+## Notebook troubleshooting (Colab / Kaggle)
+
+- **`AttributeError` after `git pull`:** the kernel cached the old modules.
+  Restart the session, or `import importlib, ledger, comms;
+  importlib.reload(ledger); importlib.reload(comms)` before `%run`.
+- **`os.fork()` RuntimeWarning** when using `!` shell commands after JAX has
+  initialized: harmless for git/ls; restart the session if anything hangs.
+- **Hugepages UserWarning / `SliceBuilder port 8471` error** on TPU startup:
+  standard Kaggle/Colab noise, affects nothing.
+
 ## Source
 
 The reasoning framework follows *How to Scale Your Model* — Austin, Douglas,
