@@ -27,8 +27,10 @@ make shard          # or one act at a time
 | 6 Inference | `bench_inference.py` | `inference` | prefill/decode split + decode bandwidth floor |
 | 7 Trace | `trace.py` | `trace` | every profiled microsecond bucketed: compute/memory/comm |
 
-Verified so far: Act 3 receipts 6/6 green on Kaggle TPU v5e-8 (2026-07-01);
-all other acts green on 8 fake CPU devices, real-chip timing receipts pending.
+Verified so far: Act 3 receipts 6/6 green on Kaggle TPU v5e-8 (2026-07-01).
+First full v5e-8 pass on the small default receipts produced useful out-of-band
+timing rows (roofline, tiny-model train, and decode floor), while the structural
+receipts stayed green. Use `make hardware-v5e8` for the larger repeatable pass.
 
 ## Hardware tiers
 
@@ -40,6 +42,9 @@ all other acts green on 8 fake CPU devices, real-chip timing receipts pending.
 
 ## Notebook troubleshooting (Colab / Kaggle)
 
+- **Kaggle v5e-8 hardware validation:** after setup, run
+  `make hardware-v5e8`. It continues through out-of-band receipts, writes a
+  log, and tars `receipts/` under `/kaggle/working`.
 - **`AttributeError` after `git pull`:** the kernel cached the old modules.
   Restart the session, or `import importlib, ledger, comms;
   importlib.reload(ledger); importlib.reload(comms)` before `%run`.

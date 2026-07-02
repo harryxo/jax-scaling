@@ -1,6 +1,6 @@
 PY := .venv/bin/python
 
-.PHONY: all shard roofline model calc train inference trace ledger devices
+.PHONY: all shard roofline model calc train inference trace ledger devices hardware-v5e8
 
 # Run every act's receipt on this machine (8 fake devices where needed).
 all: roofline model shard train inference trace ledger
@@ -32,3 +32,6 @@ ledger:             ## Print every scoreboard
 
 devices:
 	$(PY) -c "import os; os.environ.setdefault('XLA_FLAGS','--xla_force_host_platform_device_count=8'); import jax; print(jax.devices())"
+
+hardware-v5e8:       ## Kaggle TPU v5e-8 pass: continue through out-of-band receipts
+	bash scripts/kaggle_hardware_validation.sh

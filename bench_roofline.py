@@ -24,11 +24,12 @@ import chips
 from ledger import Ledger, RECEIPTS
 
 K = N = int(os.environ.get("ROOFLINE_KN", "4096"))
-BATCHES = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+_DEFAULT_BATCHES = "1 2 4 8 16 32 64 128 256 512 1024 2048"
+BATCHES = [int(b) for b in os.environ.get("ROOFLINE_BATCHES", _DEFAULT_BATCHES).split()]
 DTYPE = jnp.bfloat16
 DTYPE_BYTES = 2
 
-def median_ms(fn, *args, reps=10):
+def median_ms(fn, *args, reps=int(os.environ.get("ROOFLINE_REPS", "10"))):
     jax.block_until_ready(fn(*args))
     times = []
     for _ in range(reps):
