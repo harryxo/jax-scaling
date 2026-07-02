@@ -30,7 +30,8 @@ make shard          # or one act at a time
 Verified so far: Act 3 receipts 6/6 green on Kaggle TPU v5e-8 (2026-07-01).
 The first hardware-sized v5e-8 pass is recorded in
 `docs/hardware-v5e8-20260702.md`: DP/FSDP training and decode are in band,
-while roofline crossover and TP training remain useful out-of-band findings.
+while roofline crossover remains out of band and TP training is explained by
+communication-heavy traces.
 Use `make hardware-v5e8` for the repeatable Kaggle pass.
 
 ## Hardware tiers
