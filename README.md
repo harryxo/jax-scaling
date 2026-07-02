@@ -28,9 +28,10 @@ make shard          # or one act at a time
 | 7 Trace | `trace.py` | `trace` | every profiled microsecond bucketed: compute/memory/comm |
 
 Verified so far: Act 3 receipts 6/6 green on Kaggle TPU v5e-8 (2026-07-01).
-First full v5e-8 pass on the small default receipts produced useful out-of-band
-timing rows (roofline, tiny-model train, and decode floor), while the structural
-receipts stayed green. Use `make hardware-v5e8` for the larger repeatable pass.
+The first hardware-sized v5e-8 pass is recorded in
+`docs/hardware-v5e8-20260702.md`: DP/FSDP training and decode are in band,
+while roofline crossover and TP training remain useful out-of-band findings.
+Use `make hardware-v5e8` for the repeatable Kaggle pass.
 
 ## Hardware tiers
 

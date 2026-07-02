@@ -45,10 +45,12 @@ run inference-hardware "$PY" bench_inference.py \
   --decode-tokens "${INFER_DECODE_TOKENS:-128}" \
   --batches ${INFER_BATCHES:-1 8 32}
 
-run trace-hardware "$PY" trace.py \
-  --strategy "${TRACE_STRATEGY:-fsdp}" \
-  --steps "${TRACE_STEPS:-20}" \
-  --batch "${TRACE_BATCH:-64}"
+for trace_strategy in ${TRACE_STRATEGIES:-fsdp tp}; do
+  run "trace-hardware-$trace_strategy" "$PY" trace.py \
+    --strategy "$trace_strategy" \
+    --steps "${TRACE_STEPS:-20}" \
+    --batch "${TRACE_BATCH:-64}"
+done
 
 run ledger "$PY" -c "from pathlib import Path; from ledger import Ledger; [Ledger(p.stem).scoreboard() for p in sorted(Path('receipts').glob('*.json'))]"
 
