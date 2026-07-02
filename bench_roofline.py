@@ -15,6 +15,7 @@ import os
 import time
 
 os.environ.setdefault("XLA_FLAGS", "--xla_force_host_platform_device_count=8")
+os.environ["MPLBACKEND"] = "Agg"
 
 import jax
 import jax.numpy as jnp
@@ -78,8 +79,6 @@ def main():
         csv.writer(f).writerows([("batch", "ms", "tflops"), *rows])
 
     try:
-        import matplotlib
-        matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(figsize=(7, 4.5))
         ax.loglog([r[0] for r in rows], [r[1] for r in rows], "o-")
@@ -88,8 +87,8 @@ def main():
                title=f"{dev.device_kind}: flat = memory-bound, linear = compute-bound")
         fig.savefig(RECEIPTS / "roofline.png", dpi=120, bbox_inches="tight")
         print(f"plot -> {RECEIPTS / 'roofline.png'}")
-    except ImportError:
-        pass
+    except Exception as e:
+        print(f"plot skipped: {e}")
 
     return ledger.scoreboard(tolerance=1.0) if chip else True
 
