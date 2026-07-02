@@ -27,9 +27,20 @@ class Link:
         return f"{self.name} ({self.bandwidth / 1e9:.0f} GB/s)"
 
 
-# TODO(verify-on-hardware): datasheet values; Act 5b measures these for real.
+# Datasheet value: one direction of one ICI axis.
 V5E_ICI = Link("TPU v5e ICI, per axis", 4.5e10)
 FAKE_CPU = Link("fake CPU devices (no real interconnect)", float("nan"))
+
+# MEASURED on Kaggle v5e-8 (2x4 torus), 2026-07-01, 256MB float32 arrays:
+#   all-reduce:  effective 75.0 GB/s  (1.67x single-axis spec)
+#   all-gather:  effective 54.5 GB/s  (1.21x single-axis spec)
+# Links are bidirectional and the slice has two torus axes, so XLA routes
+# beyond the naive one-direction ring. All-reduce (= reduce-scatter +
+# all-gather) gives the compiler more routing freedom, hence the higher
+# effective bandwidth. Until modeled properly, predictions should use a
+# band of [2x, 1x] the single-axis spec (both measurements land inside).
+V5E8_ALLREDUCE_MEASURED = Link("v5e-8 all-reduce, measured 2026-07-01", 7.5e10)
+V5E8_ALLGATHER_MEASURED = Link("v5e-8 all-gather, measured 2026-07-01", 5.45e10)
 
 
 def all_gather_s(bytes_: float, n: int, link: Link) -> float:

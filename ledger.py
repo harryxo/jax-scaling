@@ -31,6 +31,14 @@ class Ledger:
                  predicted_at=time.strftime("%Y-%m-%d %H:%M:%S"))
         self._save()
 
+    def predict_range(self, key: str, lo, hi, unit: str = "", note: str = ""):
+        """For predictions with a known unknown: the measurement must land
+        inside [lo, hi]. Prefer predict() once the unknown is measured."""
+        e = self.entries.setdefault(key, {})
+        e.update(predicted_lo=lo, predicted_hi=hi, unit=unit, note=note,
+                 predicted_at=time.strftime("%Y-%m-%d %H:%M:%S"))
+        self._save()
+
     def measure(self, key: str, value):
         e = self.entries.setdefault(key, {})
         e.update(measured=value, measured_at=time.strftime("%Y-%m-%d %H:%M:%S"))
@@ -47,7 +55,14 @@ class Ledger:
         for key, e in self.entries.items():
             pred, meas = e.get("predicted"), e.get("measured")
             unit = e.get("unit", "")
-            if meas is None:
+            if "predicted_lo" in e:
+                pred = f"[{e['predicted_lo']}, {e['predicted_hi']}]"
+                if meas is None:
+                    line, ok = "(pending)", True
+                else:
+                    ok = e["predicted_lo"] <= meas <= e["predicted_hi"]
+                    line = "IN BAND PASS" if ok else "OUT OF BAND FAIL"
+            elif meas is None:
                 line, ok = "(pending)", True
             elif isinstance(pred, str):
                 ok = pred == meas
