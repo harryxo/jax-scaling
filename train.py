@@ -28,6 +28,7 @@ import optax
 from jax.sharding import Mesh, NamedSharding
 
 import chips
+import comms
 import parallel
 from ledger import Ledger, RECEIPTS
 from model import Config, count_params, init, loss_fn, train_flops_per_token
@@ -123,10 +124,19 @@ def main():
         # Step-time band from the napkin: assume MFU lands in [10%, 60%].
         flops_step = train_flops_per_token(cfg) * args.batch * cfg.seq_len
         ideal_ms = flops_step / (len(devices) * chip.peak_flops) * 1e3
+        # TP pays an extra term the compute napkin misses: ~4 activation
+        # all-reduces per layer per step (Megatron f/g pairs, fwd+bwd).
+        # We price them with the all-reduce bandwidth WE measured in Act 3.
+        act_bytes = args.batch * cfg.seq_len * cfg.d_model * 4
+        tp_comm_ms = 4 * cfg.n_layers * comms.all_reduce_s(
+            act_bytes, len(devices), comms.V5E8_ALLREDUCE_MEASURED) * 1e3
         for s in (["dp", "fsdp", "tp"] if args.strategy == "all" else [args.strategy]):
-            ledger.predict_range(f"{s}/step_ms", round(ideal_ms / 0.6, 2),
-                                 round(ideal_ms / 0.1, 2), unit="ms",
-                                 note=f"6ND napkin, MFU 10-60% on {chip.name}")
+            comm_ms = tp_comm_ms if (s == "tp" and devices[0].platform == "tpu") else 0.0
+            ledger.predict_range(f"{s}/step_ms", round(ideal_ms / 0.6 + comm_ms, 2),
+                                 round(ideal_ms / 0.1 + comm_ms, 2), unit="ms",
+                                 note=f"6ND napkin, MFU 10-60% on {chip.name}"
+                                      + (f" + {comm_ms:.1f}ms TP all-reduces "
+                                         f"(Act 3 measured bw)" if comm_ms else ""))
 
     strategies = ["dp", "fsdp", "tp"] if args.strategy == "all" else [args.strategy]
     finals = {}

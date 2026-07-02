@@ -26,8 +26,12 @@ run() {
 
 run devices "$PY" -c "import jax; print(jax.devices())"
 
+# K=16384 puts the flat region's memory floor (~650us on v5e) well above
+# dispatch overhead, so the crossover measurement is bandwidth-bound, not
+# launch-bound. Crossover prediction itself is K-independent.
 run roofline-extended env \
-  ROOFLINE_BATCHES="${ROOFLINE_BATCHES:-1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192}" \
+  ROOFLINE_KN="${ROOFLINE_KN:-16384}" \
+  ROOFLINE_BATCHES="${ROOFLINE_BATCHES:-1 2 4 8 16 32 64 128 256 512 1024 2048 4096}" \
   "$PY" bench_roofline.py
 
 run train-hardware "$PY" train.py \

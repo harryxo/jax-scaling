@@ -51,6 +51,9 @@ def main():
         # imperfect, so we claim the order of magnitude, not the digit.
         ledger.predict_range("crossover_batch", round(pred / 2), round(pred * 2),
                              note=f"{chip.name}: {chip.crossover_batch:.0f} ops/byte")
+        ledger.predict_range("peak_tflops", round(chip.peak_flops / 1e12 * 0.3),
+                             round(chip.peak_flops / 1e12 * 1.1),
+                             note="sweep should approach the roof")
         print(f"predicted crossover batch on {chip.name}: ~{pred:.0f}")
     else:
         print("unknown chip (no spec entry) — measuring only, no prediction")
@@ -66,14 +69,29 @@ def main():
         rows.append((b, ms, tflops))
         print(f"  B={b:>5}  {ms:8.3f} ms   {tflops:7.2f} TFLOP/s")
 
-    # Empirical crossover: smallest batch reaching half the peak throughput
-    # seen in the sweep (throughput doubles with B while memory-bound, then
-    # plateaus once compute-bound).
-    peak = max(t for _, _, t in rows)
-    measured = next(b for b, _, t in rows if t >= peak / 2)
-    print(f"\nempirical crossover batch (first B at >=50% of sweep peak): {measured}")
+    # Empirical crossover: intersect the two asymptotes. Flat region time
+    # comes from the smallest batches; the compute slope from the largest
+    # (linear regime, overhead amortized). No saturation required.
+    t_flat_ms = sorted(ms for _, ms, _ in rows[:3])[1]
+    slope = rows[-1][1] / rows[-1][0]              # ms per unit batch, large-B secant
+    measured = round(t_flat_ms / slope)
+    print(f"\nempirical crossover (flat {t_flat_ms:.3f} ms / slope {slope * 1e3:.3f} us per B): "
+          f"B ~ {measured}")
+
+    # Diagnose the flat region: is it memory-bound (the roofline story) or
+    # launch-overhead-bound (the third regime the napkin ignores)?
+    weight_bytes = K * N * DTYPE_BYTES
+    implied_bw = weight_bytes / (t_flat_ms / 1e3)
     if chip:
+        share = implied_bw / chip.hbm_bw
+        regime = "memory-bound" if share > 0.3 else "LAUNCH-OVERHEAD-bound"
+        print(f"flat region implies {implied_bw / 1e9:.0f} GB/s vs {chip.hbm_bw / 1e9:.0f} spec "
+              f"({share:.0%}) -> {regime}")
+        if share <= 0.3:
+            print(f"  -> the crossover measurement is contaminated by dispatch overhead;"
+                  f" rerun with ROOFLINE_KN={K * 4} to raise the memory floor above it")
         ledger.measure("crossover_batch", measured)
+        ledger.measure("peak_tflops", round(max(t for _, _, t in rows), 1))
 
     RECEIPTS.mkdir(exist_ok=True)
     with open(RECEIPTS / "roofline.csv", "w", newline="") as f:
